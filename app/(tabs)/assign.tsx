@@ -4,15 +4,17 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  TouchableOpacity,
   ScrollView,
-  Modal,
   FlatList,
   Alert,
   Dimensions,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { QrCode, MapPin, Package, X, Check } from 'lucide-react-native';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,7 @@ export default function AssignKegsScreen() {
 
   const handleQRScan = () => {
     if (!selectedOutlet) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please select an outlet first');
       return;
     }
@@ -46,10 +49,19 @@ export default function AssignKegsScreen() {
       return;
     }
     
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowScanner(true);
   };
 
   const handleBarcodeScanned = ({ data }: { data: string }) => {
+    // Check for duplicate scans
+    if (scannedKegs.find(keg => keg.id === data)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Duplicate Scan', `Keg ${data} has already been scanned`);
+      setShowScanner(false);
+      return;
+    }
+
     // Simulate keg data from QR code
     const kegData = {
       id: data,
@@ -57,6 +69,7 @@ export default function AssignKegsScreen() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setScannedKegs(prev => [...prev, kegData]);
     setShowScanner(false);
     
@@ -100,12 +113,14 @@ export default function AssignKegsScreen() {
     return (
       <SafeAreaView style={styles.scannerContainer}>
         <View style={styles.scannerHeader}>
-          <TouchableOpacity
-            style={styles.closeButton}
+          <Button
+            title=""
             onPress={() => setShowScanner(false)}
-          >
-            <X size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+            variant="secondary"
+            size="small"
+            style={styles.closeButton}
+            icon={<X size={24} color="#FFFFFF" />}
+          />
           <Text style={styles.scannerTitle}>Scan Keg QR Code</Text>
         </View>
         <CameraView
@@ -113,13 +128,16 @@ export default function AssignKegsScreen() {
           facing="back"
           onBarcodeScanned={handleBarcodeScanned}
           barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
+            barcodeTypes: ['qr', 'code128', 'code39'],
           }}
         >
           <View style={styles.scannerOverlay}>
             <View style={styles.scannerFrame} />
             <Text style={styles.scannerText}>
               Point camera at QR code to scan
+            </Text>
+            <Text style={styles.scannerSubtext}>
+              Assigned to: {selectedOutlet?.name}
             </Text>
           </View>
         </CameraView>
@@ -138,41 +156,30 @@ export default function AssignKegsScreen() {
         {/* Outlet Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Selected Outlet</Text>
-          <TouchableOpacity
-            style={styles.outletSelector}
+          <Button
+            title={selectedOutlet ? selectedOutlet.name : 'Select Outlet'}
             onPress={() => setShowOutletModal(true)}
-          >
-            {selectedOutlet ? (
-              <View style={styles.selectedOutletContent}>
-                <MapPin size={20} color="#2563EB" />
-                <View style={styles.selectedOutletText}>
-                  <Text style={styles.selectedOutletName}>
-                    {selectedOutlet.name}
-                  </Text>
-                  <Text style={styles.selectedOutletAddress}>
-                    {selectedOutlet.address}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={styles.selectOutletText}>Select Outlet</Text>
-            )}
-          </TouchableOpacity>
+            variant="secondary"
+            style={styles.outletSelector}
+            icon={<MapPin size={20} color="#2563EB" />}
+          />
+          {selectedOutlet && (
+            <Card style={styles.outletDetails}>
+              <Text style={styles.outletAddress}>{selectedOutlet.address}</Text>
+              <Text style={styles.outletKegs}>{selectedOutlet.kegs} kegs currently assigned</Text>
+            </Card>
+          )}
         </View>
 
         {/* QR Scanner Button */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={[
-              styles.scanButton,
-              !selectedOutlet && styles.scanButtonDisabled,
-            ]}
+          <Button
+            title="Scan Keg QR Code"
             onPress={handleQRScan}
             disabled={!selectedOutlet}
-          >
-            <QrCode size={24} color="#FFFFFF" />
-            <Text style={styles.scanButtonText}>Scan Keg QR Code</Text>
-          </TouchableOpacity>
+            icon={<QrCode size={24} color="#FFFFFF" />}
+            size="large"
+          />
         </View>
 
         {/* Scanned Kegs */}
@@ -181,12 +188,14 @@ export default function AssignKegsScreen() {
             <Text style={styles.sectionTitle}>
               Scanned Kegs ({scannedKegs.length})
             </Text>
-            <FlatList
-              data={scannedKegs}
-              renderItem={renderScannedKeg}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+            <Card>
+              <FlatList
+                data={scannedKegs}
+                renderItem={renderScannedKeg}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+              />
+            </Card>
           </View>
         )}
       </ScrollView>
@@ -194,27 +203,15 @@ export default function AssignKegsScreen() {
       {/* Outlet Selection Modal */}
       <Modal
         visible={showOutletModal}
-        animationType="slide"
-        transparent={true}
+        onClose={() => setShowOutletModal(false)}
+        title="Select Outlet"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Outlet</Text>
-              <TouchableOpacity
-                onPress={() => setShowOutletModal(false)}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={outlets}
-              renderItem={renderOutlet}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-            />
-          </View>
-        </View>
+        <FlatList
+          data={outlets}
+          renderItem={renderOutlet}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+        />
       </Modal>
     </SafeAreaView>
   );
@@ -254,61 +251,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   outletSelector: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 12,
   },
-  selectedOutletContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  outletDetails: {
+    padding: 12,
   },
-  selectedOutletText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  selectedOutletName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  selectedOutletAddress: {
+  outletAddress: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+    marginBottom: 4,
   },
-  selectOutletText: {
-    fontSize: 16,
+  outletKegs: {
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
-  scanButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  scanButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  scanButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
+    color: '#10B981',
   },
   scannedKeg: {
     backgroundColor: '#F0FDF4',
@@ -337,32 +294,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-  },
+
   outletItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -412,6 +344,8 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginRight: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
   },
   scannerTitle: {
     color: '#FFFFFF',
@@ -441,5 +375,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginTop: 20,
+  },
+  scannerSubtext: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.8,
   },
 });

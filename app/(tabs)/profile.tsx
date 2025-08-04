@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { User, Phone, Mail, Truck, Settings, CircleHelp as HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import * as Haptics from 'expo-haptics';
 
 const ProfileItem = ({ icon, title, subtitle, onPress, showChevron = true }: any) => (
   <TouchableOpacity style={styles.profileItem} onPress={onPress}>
@@ -26,6 +29,7 @@ const ProfileItem = ({ icon, title, subtitle, onPress, showChevron = true }: any
 
 export default function ProfileScreen() {
   const handleLogout = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
@@ -35,6 +39,7 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.replace('/login');
           },
         },
@@ -43,6 +48,7 @@ export default function ProfileScreen() {
   };
 
   const handleHelp = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       'Help & Support',
       'Contact your administrator for technical support:\n\nPhone: +1 (555) 123-4567\nEmail: support@kegtrack.com',
@@ -64,7 +70,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
-          <View style={styles.sectionContent}>
+          <Card>
             <ProfileItem
               icon={<Phone size={20} color="#2563EB" />}
               title="Phone Number"
@@ -83,12 +89,12 @@ export default function ProfileScreen() {
               subtitle="Truck #05 - ABC123"
               onPress={() => {}}
             />
-          </View>
+          </Card>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Statistics</Text>
-          <View style={styles.statsContainer}>
+          <Card style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>127</Text>
               <Text style={styles.statLabel}>Kegs Delivered</Text>
@@ -101,17 +107,20 @@ export default function ProfileScreen() {
               <Text style={styles.statValue}>23</Text>
               <Text style={styles.statLabel}>Outlets Served</Text>
             </View>
-          </View>
+          </Card>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Settings</Text>
-          <View style={styles.sectionContent}>
+          <Card>
             <ProfileItem
               icon={<Settings size={20} color="#6B7280" />}
               title="App Settings"
               subtitle="Notifications, preferences"
-              onPress={() => Alert.alert('Settings', 'Settings panel coming soon')}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Alert.alert('Settings', 'Settings panel coming soon');
+              }}
             />
             <ProfileItem
               icon={<HelpCircle size={20} color="#6B7280" />}
@@ -119,14 +128,17 @@ export default function ProfileScreen() {
               subtitle="Get help or contact support"
               onPress={handleHelp}
             />
-          </View>
+          </Card>
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={20} color="#EF4444" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+          <Button
+            title="Logout"
+            onPress={handleLogout}
+            variant="danger"
+            icon={<LogOut size={20} color="#FFFFFF" />}
+            style={styles.logoutButton}
+          />
         </View>
 
         <View style={styles.footer}>
@@ -186,19 +198,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 12,
   },
-  sectionContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+
   profileItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,17 +231,7 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   statItem: {
     flex: 1,
@@ -260,28 +250,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#EF4444',
+    // Button component handles styling
   },
   footer: {
     alignItems: 'center',

@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   Alert,
@@ -11,8 +9,12 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Phone, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Phone, Eye, EyeOff } from 'lucide-react-native';
 import CountryPicker from 'react-native-country-picker-modal';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
+import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
   const [countryCode, setCountryCode] = useState('US');
@@ -24,22 +26,30 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!phoneNumber || !password) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    // if (phoneNumber.length < 10) {
+    //   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    //   Alert.alert('Error', 'Please enter a valid phone number');
+    //   return;
+    // }
+
     setIsLoading(true);
-    
-    // Simulate API call
+
+    // Simulate API call with better feedback
     setTimeout(() => {
       setIsLoading(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     }, 1500);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -49,65 +59,57 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Driver Login</Text>
           </View>
 
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <View style={styles.phoneContainer}>
-                <CountryPicker
-                  countryCode={countryCode as any}
-                  withFilter
-                  withFlag
-                  withCallingCode
-                  withCallingCodeButton
-                  onSelect={(country) => {
-                    setCountryCode(country.cca2);
-                    setCallingCode(country.callingCode[0]);
-                  }}
-                  containerButtonStyle={styles.countryPicker}
-                />
-                <Text style={styles.callingCode}>+{callingCode}</Text>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="Phone Number"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-              <Phone size={20} color="#6B7280" style={styles.inputIcon} />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                placeholderTextColor="#9CA3AF"
+          <Card style={styles.form}>
+            <View style={styles.phoneContainer}>
+              <CountryPicker
+                countryCode={countryCode as any}
+                withFilter
+                withFlag
+                withCallingCode
+                withCallingCodeButton
+                onSelect={(country) => {
+                  setCountryCode(country.cca2);
+                  setCallingCode(country.callingCode[0]);
+                }}
+                containerButtonStyle={styles.countryPicker}
               />
-              <TouchableOpacity
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
-                ) : (
-                  <Eye size={20} color="#6B7280" />
-                )}
-              </TouchableOpacity>
+              <Text style={styles.callingCode}>+{callingCode}</Text>
+              <Input
+                style={styles.phoneInput}
+                placeholder="Phone Number"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
+                containerStyle={styles.phoneInputContainer}
+              />
             </View>
 
-            <TouchableOpacity
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+            <Input
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              rightIcon={
+                <Button
+                  title=""
+                  onPress={() => setShowPassword(!showPassword)}
+                  variant="secondary"
+                  size="small"
+                  style={styles.passwordToggle}
+                  icon={showPassword ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+                />
+              }
+            />
+
+            <Button
+              title={isLoading ? 'Logging in...' : 'Login'}
               onPress={handleLogin}
               disabled={isLoading}
-            >
-              <Text style={styles.loginButtonText}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              loading={isLoading}
+              size="large"
+              style={styles.loginButton}
+            />
+          </Card>
 
           <Text style={styles.footer}>
             Contact your administrator for login credentials
@@ -147,21 +149,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  inputContainer: {
-    position: 'relative',
-    marginBottom: 20,
   },
   phoneContainer: {
     flexDirection: 'row',
@@ -172,6 +160,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FAFAFA',
+    marginBottom: 16,
   },
   countryPicker: {
     marginRight: 8,
@@ -187,42 +176,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#374151',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#374151',
-    backgroundColor: '#FAFAFA',
-    paddingRight: 48,
-  },
-  inputIcon: {
-    position: 'absolute',
-    right: 16,
-    top: 12,
+  phoneInputContainer: {
+    marginBottom: 0,
   },
   passwordToggle: {
-    position: 'absolute',
-    right: 16,
-    top: 12,
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+    padding: 0,
+    minHeight: 'auto',
   },
   loginButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
     marginTop: 8,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
   },
   footer: {
     textAlign: 'center',

@@ -5,21 +5,12 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { Package, MapPin, TrendingUp, Clock } from 'lucide-react-native';
-
-const StatCard = ({ icon, title, value, color }: any) => (
-  <View style={[styles.statCard, { borderLeftColor: color }]}>
-    <View style={styles.statIcon}>
-      {icon}
-    </View>
-    <View style={styles.statContent}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statTitle}>{title}</Text>
-    </View>
-  </View>
-);
+import { StatCard } from '@/components/shared/StatCard';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import * as Haptics from 'expo-haptics';
 
 const RecentActivity = ({ icon, title, subtitle, time }: any) => (
   <View style={styles.activityItem}>
@@ -49,30 +40,40 @@ export default function DashboardScreen() {
             title="Total Kegs"
             value="248"
             color="#2563EB"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              // Navigate to keg details
+            }}
           />
           <StatCard
             icon={<MapPin size={24} color="#10B981" />}
             title="Active Outlets"
             value="32"
             color="#10B981"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              // Navigate to outlets
+            }}
           />
           <StatCard
             icon={<TrendingUp size={24} color="#F59E0B" />}
             title="Delivered Today"
             value="18"
             color="#F59E0B"
+            subtitle="Target: 25"
           />
           <StatCard
             icon={<Clock size={24} color="#EF4444" />}
             title="Pending Pickup"
             value="7"
             color="#EF4444"
+            subtitle="Urgent: 2"
           />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <View style={styles.activityContainer}>
+          <Card style={styles.activityContainer}>
             <RecentActivity
               icon={<Package size={16} color="#2563EB" />}
               title="Kegs Assigned"
@@ -91,20 +92,28 @@ export default function DashboardScreen() {
               subtitle="Sunset Restaurant"
               time="1 day ago"
             />
-          </View>
+          </Card>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Package size={20} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Scan QR Code</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <MapPin size={20} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>View Routes</Text>
-            </TouchableOpacity>
+            <Button
+              title="Scan QR Code"
+              onPress={() => {
+                // Navigate to scanner
+              }}
+              icon={<Package size={20} color="#FFFFFF" />}
+              style={styles.actionButton}
+            />
+            <Button
+              title="View Routes"
+              onPress={() => {
+                // Navigate to routes
+              }}
+              icon={<MapPin size={20} color="#FFFFFF" />}
+              style={styles.actionButton}
+            />
           </View>
         </View>
       </ScrollView>
@@ -136,40 +145,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
   },
-  statCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statIcon: {
-    marginRight: 16,
-  },
-  statContent: {
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  statTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-  },
   section: {
     paddingHorizontal: 24,
     marginBottom: 24,
@@ -181,17 +156,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   activityContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   activityItem: {
     flexDirection: 'row',
@@ -233,17 +198,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
   },
 });

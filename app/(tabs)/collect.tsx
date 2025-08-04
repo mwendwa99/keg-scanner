@@ -4,15 +4,17 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  TouchableOpacity,
   ScrollView,
-  Modal,
   FlatList,
   Alert,
   Dimensions,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Truck, MapPin, Package, X, Check, QrCode } from 'lucide-react-native';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -64,6 +66,7 @@ export default function CollectKegsScreen() {
 
   const handleQRScan = () => {
     if (!selectedOutlet) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please select an outlet first');
       return;
     }
@@ -73,6 +76,7 @@ export default function CollectKegsScreen() {
       return;
     }
     
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowScanner(true);
   };
 
@@ -81,6 +85,7 @@ export default function CollectKegsScreen() {
     const outletKeg = selectedOutlet?.kegs.find((keg: any) => keg.id === data);
     
     if (!outletKeg) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         'Invalid Keg',
         `Keg ${data} does not belong to ${selectedOutlet?.name}`,
@@ -92,6 +97,7 @@ export default function CollectKegsScreen() {
 
     // Check if already collected
     if (collectedKegs.find((keg: any) => keg.id === data)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         'Already Collected',
         `Keg ${data} has already been collected`,
@@ -107,6 +113,7 @@ export default function CollectKegsScreen() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCollectedKegs(prev => [...prev, kegData]);
     setShowScanner(false);
     
@@ -119,6 +126,7 @@ export default function CollectKegsScreen() {
 
   const handleFinishCollection = () => {
     if (collectedKegs.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('No Kegs', 'No kegs have been collected yet');
       return;
     }
@@ -131,6 +139,7 @@ export default function CollectKegsScreen() {
         {
           text: 'Confirm',
           onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Success', 'Keg collection completed successfully!');
             setCollectedKegs([]);
             setSelectedOutlet(null);
@@ -175,12 +184,14 @@ export default function CollectKegsScreen() {
     return (
       <SafeAreaView style={styles.scannerContainer}>
         <View style={styles.scannerHeader}>
-          <TouchableOpacity
-            style={styles.closeButton}
+          <Button
+            title=""
             onPress={() => setShowScanner(false)}
-          >
-            <X size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+            variant="secondary"
+            size="small"
+            style={styles.closeButton}
+            icon={<X size={24} color="#FFFFFF" />}
+          />
           <Text style={styles.scannerTitle}>Scan Keg QR Code</Text>
         </View>
         <CameraView
@@ -188,13 +199,16 @@ export default function CollectKegsScreen() {
           facing="back"
           onBarcodeScanned={handleBarcodeScanned}
           barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
+            barcodeTypes: ['qr', 'code128', 'code39'],
           }}
         >
           <View style={styles.scannerOverlay}>
             <View style={styles.scannerFrame} />
             <Text style={styles.scannerText}>
               Scan kegs from {selectedOutlet?.name}
+            </Text>
+            <Text style={styles.scannerSubtext}>
+              Progress: {collectedKegs.length}/{selectedOutlet?.kegs.length}
             </Text>
           </View>
         </CameraView>
@@ -213,79 +227,66 @@ export default function CollectKegsScreen() {
         {/* Outlet Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Collection Location</Text>
-          <TouchableOpacity
-            style={styles.outletSelector}
+          <Button
+            title={selectedOutlet ? selectedOutlet.name : 'Select Outlet'}
             onPress={() => setShowOutletModal(true)}
-          >
-            {selectedOutlet ? (
-              <View style={styles.selectedOutletContent}>
-                <MapPin size={20} color="#F59E0B" />
-                <View style={styles.selectedOutletText}>
-                  <Text style={styles.selectedOutletName}>
-                    {selectedOutlet.name}
-                  </Text>
-                  <Text style={styles.selectedOutletAddress}>
-                    {selectedOutlet.address}
-                  </Text>
-                  <Text style={styles.availableKegs}>
-                    {selectedOutlet.kegs.length} kegs available for pickup
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={styles.selectOutletText}>Select Outlet</Text>
-            )}
-          </TouchableOpacity>
+            variant="secondary"
+            style={styles.outletSelector}
+            icon={<MapPin size={20} color="#F59E0B" />}
+          />
+          {selectedOutlet && (
+            <Card style={styles.outletDetails}>
+              <Text style={styles.outletAddress}>{selectedOutlet.address}</Text>
+              <Text style={styles.availableKegs}>
+                {selectedOutlet.kegs.length} kegs available for pickup
+              </Text>
+            </Card>
+          )}
         </View>
 
         {/* Action Buttons */}
         <View style={styles.section}>
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[
-                styles.scanButton,
-                !selectedOutlet && styles.scanButtonDisabled,
-              ]}
+            <Button
+              title="Scan Keg"
               onPress={handleQRScan}
               disabled={!selectedOutlet}
-            >
-              <QrCode size={20} color="#FFFFFF" />
-              <Text style={styles.scanButtonText}>Scan Keg</Text>
-            </TouchableOpacity>
+              icon={<QrCode size={20} color="#FFFFFF" />}
+              style={styles.actionButton}
+            />
             
-            <TouchableOpacity
-              style={[
-                styles.finishButton,
-                collectedKegs.length === 0 && styles.finishButtonDisabled,
-              ]}
+            <Button
+              title="Finish Collection"
               onPress={handleFinishCollection}
               disabled={collectedKegs.length === 0}
-            >
-              <Truck size={20} color="#FFFFFF" />
-              <Text style={styles.finishButtonText}>Finish Collection</Text>
-            </TouchableOpacity>
+              variant="success"
+              icon={<Truck size={20} color="#FFFFFF" />}
+              style={styles.actionButton}
+            />
           </View>
         </View>
 
         {/* Collection Progress */}
         {selectedOutlet && (
           <View style={styles.section}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.sectionTitle}>Collection Progress</Text>
-              <Text style={styles.progressText}>
-                {collectedKegs.length} of {selectedOutlet.kegs.length} kegs
-              </Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${(collectedKegs.length / selectedOutlet.kegs.length) * 100}%`
-                  }
-                ]}
-              />
-            </View>
+            <Card style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.sectionTitle}>Collection Progress</Text>
+                <Text style={styles.progressText}>
+                  {collectedKegs.length} of {selectedOutlet.kegs.length} kegs
+                </Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${(collectedKegs.length / selectedOutlet.kegs.length) * 100}%`
+                    }
+                  ]}
+                />
+              </View>
+            </Card>
           </View>
         )}
 
@@ -295,12 +296,14 @@ export default function CollectKegsScreen() {
             <Text style={styles.sectionTitle}>
               Collected Kegs ({collectedKegs.length})
             </Text>
-            <FlatList
-              data={collectedKegs}
-              renderItem={renderCollectedKeg}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+            <Card>
+              <FlatList
+                data={collectedKegs}
+                renderItem={renderCollectedKeg}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+              />
+            </Card>
           </View>
         )}
       </ScrollView>
@@ -308,27 +311,15 @@ export default function CollectKegsScreen() {
       {/* Outlet Selection Modal */}
       <Modal
         visible={showOutletModal}
-        animationType="slide"
-        transparent={true}
+        onClose={() => setShowOutletModal(false)}
+        title="Select Collection Location"
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Collection Location</Text>
-              <TouchableOpacity
-                onPress={() => setShowOutletModal(false)}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={outletsWithKegs}
-              renderItem={renderOutlet}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-            />
-          </View>
-        </View>
+        <FlatList
+          data={outletsWithKegs}
+          renderItem={renderOutlet}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+        />
       </Modal>
     </SafeAreaView>
   );
@@ -368,35 +359,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   outletSelector: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 12,
   },
-  selectedOutletContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  outletDetails: {
+    padding: 12,
   },
-  selectedOutletText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  selectedOutletName: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  selectedOutletAddress: {
+  outletAddress: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
@@ -407,51 +375,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#F59E0B',
   },
-  selectOutletText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-    textAlign: 'center',
-  },
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
   },
-  scanButton: {
+  actionButton: {
     flex: 1,
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
+  },
+  progressCard: {
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  scanButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  scanButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-  },
-  finishButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  finishButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  finishButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -502,32 +434,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-  },
+
   outletItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -577,6 +484,8 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginRight: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
   },
   scannerTitle: {
     color: '#FFFFFF',
@@ -606,5 +515,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginTop: 20,
+  },
+  scannerSubtext: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.8,
   },
 });
